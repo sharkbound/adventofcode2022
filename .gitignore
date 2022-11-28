@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# session tokens
+/secrets/
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/.gitignore
+/.idea/adventofcode2022.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
