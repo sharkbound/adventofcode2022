@@ -18,6 +18,8 @@ __all__ = [
     'namedtuple'
 ]
 
+import utils
+
 
 class DayNotFoundError(Exception):
     def __init__(self, day, part, search_path) -> None:
@@ -27,6 +29,11 @@ class DayNotFoundError(Exception):
 class DayInputFileNotFoundError(Exception):
     def __init__(self, day, part, search_path):
         super().__init__(f'could not find input file for day {day}\n\t[day: {day}, part: {part}, path: {search_path}]')
+
+
+class DaySampleFileNotFoundError(Exception):
+    def __init__(self, day, part, sample_id):
+        super().__init__(f'could not find sample file for day {day}\n\t[day: {day}, part: {part}, sample_id: {sample_id}]')
 
 
 class MissingDayFileError(Exception):
@@ -59,6 +66,24 @@ class Day:
     @property
     def input_sample(self) -> str:
         return self.get_sample_input()
+
+    def get_sample_file_path(self, sample_id) -> Optional[Path]:
+        for file in utils.get_sample_files_for_day(self.day):
+            filename = str(file.stem)
+            sample_file_id = filename[filename.index('_') + 1:]
+            if sample_file_id == str(sample_id):
+                return file.absolute()
+        return None
+
+    def read_sample_file_text(self, sample_id) -> str:
+        if (file := self.get_sample_file_path(sample_id)) is None:
+            raise DaySampleFileNotFoundError(self.day, self.part, sample_id)
+        return file.read_text()
+
+    def read_sample_file_lines(self, sample_id: int, keepends=False) -> list[str]:
+        if (file := self.get_sample_file_path(sample_id)) is None:
+            raise DaySampleFileNotFoundError(self.day, self.part, sample_id)
+        return file.read_text().splitlines(keepends=keepends)
 
     @property
     def input_sample_lines(self):

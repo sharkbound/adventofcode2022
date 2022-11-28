@@ -1,5 +1,5 @@
 from pathlib import Path
-from utils import ask_int, create_day_input_file_path, create_day_folder_path
+from utils import ask_int, create_day_input_file_path, get_day_folder_path
 
 DAY_PART_PY_CODE = '''
 from day import Day
@@ -54,7 +54,7 @@ def create_if_not_exists(path: Path, type: str):
 
 day = ask_int('enter day number >>> ')
 day_input_file_path = create_day_input_file_path(day)
-day_folder_path = create_day_folder_path(day)
+day_folder_path = get_day_folder_path(day)
 
 create_if_not_exists(day_input_file_path, CreateMode.FILE)
 

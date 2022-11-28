@@ -1,4 +1,3 @@
-
 from day import Day
 import re
 import numpy as np
