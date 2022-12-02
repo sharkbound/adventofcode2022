@@ -1,7 +1,5 @@
 from day import Day
-import re
 import numpy as np
-import utils
 
 
 class Day1Part1(Day):
@@ -12,7 +10,8 @@ class Day1Part1(Day):
         return ''
 
     def parse_input(self):
-        return ''
+        return [np.array(x.splitlines(), dtype=int) for x in self.input_text.split('\n\n')]
 
     def solve(self):
         data = self.parse_input()
+        self.print_answer(max(data, key=lambda x: x.sum()).sum())
