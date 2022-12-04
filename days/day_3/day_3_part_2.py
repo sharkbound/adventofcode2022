@@ -3,6 +3,7 @@ from icecream import ic
 from day import Day
 import numpy as np
 import utils
+import more_itertools
 
 """
 Each rucksack has two large compartments. 
@@ -24,9 +25,8 @@ To help prioritize item rearrangement, every item type can be converted to a pri
     Lowercase item types a through z have priorities 1 through 26.
     Uppercase item types A through Z have priorities 27 through 52.
 
-Find the item type that appears in both compartments of each rucksack. 
-What is the sum of the priorities of those item types?
 """
+
 _LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 PRIORITIES = {v: i + 1 for i, v in enumerate(_LETTERS)}
 
@@ -40,16 +40,19 @@ class Day3Part2(Day):
 
     def parse_input(self):
         return [
-            (set(line[:(_mid := len(line) // 2)]), set(line[_mid:]))
+            (set(line))
             for line in self.input_text_lines
         ]
 
     def solve(self):
-        # TODO: solve this
         data = self.parse_input()
-        self.print_answer(
-            sum(
-                PRIORITIES[next(iter(x))]
-                for x in [inv[0] & inv[1] for inv in data]
-            )
-        )
+        sum_ = 0
+        for group in more_itertools.chunked(data, 3):
+            common = group[0] & group[1] & group[2]
+            sum_ += PRIORITIES[next(iter(common))]
+        self.print_answer(sum_)
+        #     sum(
+        #         PRIORITIES[next(iter(x))]
+        #         for x in [inv[0] & inv[1] for inv in data]
+        #     )
+        # )
