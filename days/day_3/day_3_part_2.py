@@ -27,8 +27,7 @@ To help prioritize item rearrangement, every item type can be converted to a pri
 
 """
 
-_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-PRIORITIES = {v: i + 1 for i, v in enumerate(_LETTERS)}
+PRIORITIES = {v: i + 1 for i, v in enumerate('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')}
 
 
 class Day3Part2(Day):

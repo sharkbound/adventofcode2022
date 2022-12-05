@@ -27,8 +27,7 @@ To help prioritize item rearrangement, every item type can be converted to a pri
 Find the item type that appears in both compartments of each rucksack. 
 What is the sum of the priorities of those item types?
 """
-_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-PRIORITIES = {v: i + 1 for i, v in enumerate(_LETTERS)}
+PRIORITIES = {v: i + 1 for i, v in enumerate('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')}
 
 
 class Day3Part1(Day):
