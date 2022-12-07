@@ -39,10 +39,7 @@ class Day5Part2(Day):
             char = int(char)
             stacks[char] = [row[i] for row in reversed(rows) if i < len(row) and row[i].strip()]
 
-        parsed_instructions = []
-        for line in reversed(instructions):
-            parsed_instructions.append(utils.get_all_ints(line, transform=tuple))
-
+        parsed_instructions = [utils.get_all_ints(line, transform=tuple) for line in reversed(instructions)]
         return stacks, parsed_instructions
 
     def solve(self):
