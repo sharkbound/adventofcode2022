@@ -26,7 +26,7 @@ class Day5Part1(Day):
 
     def parse_input(self):
         raw_text = self.input_text
-        rows, instructions = (_parts := raw_text.split('\n\n'))[0].splitlines(keepends=False), _parts[1].splitlines(keepends=False)
+        rows, instructions = map(lambda x: x.splitlines(keepends=False), raw_text.split('\n\n'))
         cargo_stack_id_line = rows[-1]
 
         del rows[-1]
