@@ -69,7 +69,7 @@ def flatten(iterable, depth=None, transform_items=lambda x: x, result_transform=
     return result_transform(iter_flatten(iterable, depth, transform_items))
 
 
-def map_inner_elements(iterable, transform_item, result_transform=None):
+def map_inner_elements(transform_item, iterable, result_transform=None):
     result_transform_func = (
         result_transform
         if result_transform is not None
