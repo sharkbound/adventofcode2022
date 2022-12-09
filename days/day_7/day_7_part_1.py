@@ -23,7 +23,7 @@ class Day7Part1(Day):
     def parse_input(self):
         return [
             [(int(x) if x.isnumeric() else x) for x in line.split()]
-            for line in self.read_sample_file_lines(0)
+            for line in self.input_text_lines
         ]
 
     def process_cmd_cd(self, target: str, current_path: Path) -> Path:
@@ -41,7 +41,7 @@ class Day7Part1(Day):
         """
         :return: (index to resume at, files listed, sum of file sizes)
         """
-        files = []
+        files = set()
         total_size = 0
         while i < len(data):
             match data[i]:
@@ -49,9 +49,9 @@ class Day7Part1(Day):
                     return i, files, total_size
                 case [int() as size, str() as filename]:
                     total_size += size
-                    files.append((size, current_path / filename))
+                    files.add((size, current_path / filename))
                 case ['dir', foldername]:
-                    files.append((Type.PENDING_ADDITION, current_path, current_path / foldername))
+                    files.add((Type.PENDING_ADDITION, current_path, current_path / foldername))
             i += 1
 
         return i, files, total_size
@@ -63,6 +63,16 @@ class Day7Part1(Day):
             case 'ls':
                 return current_path, Type.COMMAND_LS, *self.process_cmd_ls(data, i + 1, current_path)
         return current_path,
+
+    def _append_pending_additions(self, ls_results):
+        # reverse the output so innermost folders are calculated first
+        for folder_data in reversed(ls_results.values()):
+            for file in tuple(folder_data['files']):
+                if file[0] is Type.PENDING_ADDITION:
+                    # file[1]: the directory that will be extended
+                    # file[2]: the directory whose files will be added to file[1]
+                    folder_data['files'].update(ls_results[file[2]])
+                    folder_data['size'] += ls_results[file[2]]['size']
 
     def solve(self):
         data = self.parse_input()
@@ -80,23 +90,18 @@ class Day7Part1(Day):
 
             match rest:
                 case [Type.COMMAND_LS, index, files, total_size]:
-                    print(f'[LS ({current_path})]\n\tindex: {index}\n\t{files}\n\tsize ({current_path}): {total_size}')
                     i = index
+
                     ls_results[current_path] = {'files': files, 'size': total_size, 'dir': current_path}
                     continue
 
                 case [Type.COMMAND_CD]:
-                    print(f'[CD] {current_path}')
+                    pass
 
             i += 1
-            ic(ls_results)
-            for key, extra in ls_results.items():
-                for file in extra['files']:
-                    ic(file)
-                    if file[0] is Type.PENDING_ADDITION:
-                        print(f'[ADDITION (to {file[1]})] {file[2]}')
-                        extra['files'].extend(ls_results[file[2]])
-                        extra['size'] += ls_results[file[2]]['size']
+
+        self._append_pending_additions(ls_results)
+        self.print_answer(sum(folder['size'] for folder in ls_results.values() if folder['size'] <= 100000))
 
 
 """
