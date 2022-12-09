@@ -13,6 +13,10 @@ class Type:
     PENDING_ADDITION = object()
 
 
+DISK_SPACE = 70000000
+REQUIRED_UPDATE_DISKS_SPACE = 30000000
+
+
 class Day7Part1(Day):
     day = 7
     part = 1
@@ -71,8 +75,13 @@ class Day7Part1(Day):
                 if file[0] is Type.PENDING_ADDITION:
                     # file[1]: the directory that will be extended
                     # file[2]: the directory whose files will be added to file[1]
-                    folder_data['files'].update(ls_results[file[2]])
-                    folder_data['size'] += ls_results[file[2]]['size']
+                    folder_data['files'].update(ls_results[file[2]]['files'])
+
+            folder_data['files'] = {x for x in folder_data['files'] if x[0] is not Type.PENDING_ADDITION}
+            folder_data['size'] = sum(x[0] for x in folder_data['files'])
+
+    def size_of(self, ls_results, path: Path) -> int:
+        return ls_results[path]['size']
 
     def solve(self):
         data = self.parse_input()
@@ -102,13 +111,3 @@ class Day7Part1(Day):
 
         self._append_pending_additions(ls_results)
         self.print_answer(sum(folder['size'] for folder in ls_results.values() if folder['size'] <= 100000))
-
-
-"""
-The total sizes of the directories above can be found as follows:
-
-    The total size of directory e is 584 because it contains a single file i of size 584 and no other directories.
-    The directory a has total size 94853 because it contains files f (size 29116), g (size 2557), and h.lst (size 62596), plus file i indirectly (a contains e which contains i).
-    Directory d has total size 24933642.
-    As the outermost directory, / contains every file. Its total size is 48381165, the sum of the size of every file.
-"""
