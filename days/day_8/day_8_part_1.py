@@ -26,13 +26,23 @@ class Day8Part1(Day):
         return ''
 
     def parse_input(self):
-        return np.array([list(line) for line in self.read_sample_file_lines(0)])
+        return np.array([list(line) for line in self.input_text_lines])
+        # return np.array([list(line) for line in self.read_sample_file_lines(0)])
 
-    def check_array(self, array: np.ndarray):
-        pass
+    def check_visibility(self, data: np.ndarray, index: tuple, value: int):
+        row = data[index[0], :]
+        column = data[:, index[1]]
+        left, right, up, down = row[:index[1]], row[index[1] + 1:], column[:index[0]], column[index[0] + 1:]
+        return (left < value).all() or (right < value).all() or (up < value).all() or (down < value).all()
 
     def solve(self):
         data = self.parse_input()
-        # edges
-        total = data.shape[0] * 2 + (data.shape[1] * 2) - 4
-        ic(total)
+        total = 0
+        for i, v in np.ndenumerate(data):
+            if i[0] == 0 or i[1] == 0 or i[0] == data.shape[0] - 1 or i[1] == data.shape[1] - 1:
+                total += 1
+                continue
+                
+            if self.check_visibility(data, i, v):
+                total += 1
+        self.print_answer(total)
