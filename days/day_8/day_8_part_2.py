@@ -29,20 +29,41 @@ class Day8Part2(Day):
         return np.array([list(line) for line in self.input_text_lines])
         # return np.array([list(line) for line in self.read_sample_file_lines(0)])
 
-    def check_visibility(self, data: np.ndarray, index: tuple, value: int):
-        row = data[index[0], :]
-        column = data[:, index[1]]
-        left, right, up, down = row[:index[1]], row[index[1] + 1:], column[:index[0]], column[index[0] + 1:]
-        return (left < value).all() or (right < value).all() or (up < value).all() or (down < value).all()
+    def get_score(self, array, index):
+        row = array[index[0], :]
+        column = array[:, index[1]]
+
+        left = row[:index[1]][::-1]
+        right = row[index[1] + 1:]
+        up = column[:index[0]][::-1]
+        down = column[index[0] + 1:]
+
+        center_value = array[index]
+        mul_total = 1
+
+        for arr in (up, left, down, right):
+            total = 0
+            for val in arr:
+                if val > center_value:
+                    total += 1
+                    break
+
+                if val == center_value:
+                    total += 1
+                    break
+
+                if val < center_value:
+                    total += 1
+
+            mul_total *= total
+
+        return mul_total
 
     def solve(self):
         data = self.parse_input()
-        total = 0
+        best_score = 0
         for i, v in np.ndenumerate(data):
             if i[0] == 0 or i[1] == 0 or i[0] == data.shape[0] - 1 or i[1] == data.shape[1] - 1:
-                total += 1
                 continue
-
-            if self.check_visibility(data, i, v):
-                total += 1
-        self.print_answer(total)
+            best_score = max(best_score, self.get_score(data, i))
+        self.print_answer(best_score)
