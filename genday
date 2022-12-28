@@ -1,0 +1,3 @@
+python makeday.py
+python makesample.py
+python getinput.py
