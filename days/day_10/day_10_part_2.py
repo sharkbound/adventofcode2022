@@ -1,22 +1,25 @@
 from enum import Enum, auto
 
-from icecream import ic
-
 from day import Day
-import re
-import numpy as np
-import utils
 
 """
-addx V takes two cycles to complete. After two cycles, the X register is increased by the value V. (V can be negative.)
-noop takes one cycle to complete. It has no other effect.
+the X register controls the horizontal position of a sprite
+the sprite is 3 pixels wide,
+    and the X register sets the horizontal position of the middle of that sprite
 
-For now, consider the signal strength (the cycle number multiplied by the value of the X register) 
-    during the 20th cycle and every 40 cycles after that
-    (that is, during the 20th, 60th, 100th, 140th, 180th, and 220th cycles).
+You count the pixels on the CRT: 40 wide and 6 high
+This CRT screen draws the top row of pixels left-to-right
+     then the row below that, and so on
 
-Find the signal strength during the 20th, 60th, 100th, 140th, 180th, and 220th cycles. 
-What is the sum of these six signal strengths?
+The left-most pixel in each row is in position 0, 
+    and the right-most pixel in each row is in position 39
+    
+the CRT draws a single pixel during each cycle
+    Representing each pixel of the screen as a #
+    
+If the sprite is positioned such that one of its three pixels is the pixel currently being drawn, 
+    the screen produces a lit pixel (#)
+    otherwise, the screen leaves the pixel dark (.). 
 """
 
 
@@ -77,24 +80,28 @@ class Day10Part2(Day):
 
         sum_ = 0
         memory = {'x': 1}
-        elapsed_ticks = 1
+        elapsed_ticks = 0
+        drawn = [[]]
 
         for instr in data:
             local_elapsed_ticks = 0
 
             while True:
+                line = drawn[-1]
+                beam_x = elapsed_ticks % 40
+                line.append('#' if abs(beam_x - memory['x']) <= 1 else ' ')
+
                 elapsed_ticks += 1
                 local_elapsed_ticks += 1
 
-                exec_result = self.exec(instr, memory, elapsed_ticks, local_elapsed_ticks)
+                if len(line) >= 40:
+                    drawn.append([])
 
-                if elapsed_ticks in self.__class__.SUM_TICKS:
-                    sum_ += elapsed_ticks * memory["x"]
-                    # print(f'{elapsed_ticks=}, {memory=}, {elapsed_ticks * memory["x"]=}')
+                exec_result = self.exec(instr, memory, elapsed_ticks, local_elapsed_ticks)
 
                 if exec_result == TickResult.DONE:
                     break
 
         # print(f'{elapsed_ticks=}, {memory=}, {sum_=}')
         # https://adventofcode.com/2022/day/10#part2
-        self.print_answer(sum_)
+        self.print_answer('\n' + '\n'.join(''.join(line) for line in drawn))
