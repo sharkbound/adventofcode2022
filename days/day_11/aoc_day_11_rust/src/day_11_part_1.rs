@@ -29,11 +29,6 @@ impl OperationSign {
     }
 }
 
-impl Debug for OperationSign {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "")
-    }
-}
 
 struct Monkey<'a> {
     id: u32,
