@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
-use rustutils::{str_split};
+use rustutils::str_split;
 use aoc_day_11_rust::{OperationSign, SubstituteValue};
 
 /*
@@ -18,8 +18,6 @@ The monkeys take turns inspecting and throwing items.
 On a single monkey's turn, it inspects and throws all of the items it is holding one at a time and in the order listed.
 */
 
-
-// #[derive(Debug)]
 struct Monkey {
     id: u32,
     items: VecDeque<u32>,
@@ -65,11 +63,11 @@ impl Debug for Monkey {
     }
 }
 
-pub struct Day11Part1<'a> {
+pub struct Day11Part2<'a> {
     input_path: &'a Path,
 }
 
-impl<'a> Day11Part1<'a> {
+impl<'a> Day11Part2<'a> {
     pub fn new(path: &'a str) -> Self {
         Self { input_path: Path::new(path) }
     }
@@ -151,11 +149,19 @@ impl<'a> Day11Part1<'a> {
         }
     }
 
+    fn optimize_worry_level(item: u32, target_divisor: u32) -> u32 {
+        todo!("fix this! does not main divisors in the long run correctly");
+        match item < target_divisor {
+            true => item,
+            false => item - (target_divisor * (item / target_divisor))
+        }
+    }
+
     fn do_round_for_single_monkey(monkey: &mut Monkey) -> Vec<(usize, u32)> {
         let mut dests = vec![];
         while let Some(item) = monkey.next_item() {
-            let div_result = monkey.inspect(item) / 3;
-            dests.push((monkey.throw_target(div_result), div_result));
+            let item_worry_level = monkey.inspect(item);
+            dests.push((monkey.throw_target(item_worry_level), item_worry_level));
         }
         dests
     }
@@ -163,19 +169,23 @@ impl<'a> Day11Part1<'a> {
     fn do_round(monkeys: &mut Vec<Monkey>) {
         for i in 0..monkeys.len() {
             let monkey = monkeys.get_mut(i).unwrap();
-            for (dest, val) in Self::do_round_for_single_monkey(monkey) {
-                monkeys.get_mut(dest).unwrap().add_item(val);
+            for (dest, item_worry_level) in Self::do_round_for_single_monkey(monkey) {
+                let target_monkey = monkeys.get_mut(dest).unwrap();
+                let optimized_worry_level = Self::optimize_worry_level(item_worry_level, target_monkey.div_test);
+                target_monkey.add_item(optimized_worry_level);
             }
         }
     }
 
     pub fn solve(&self) {
         let mut monkeys = self.parse();
-        for _ in 0..20 {
+        for round in 0..10000 {
             Self::do_round(&mut monkeys);
+            // println!("ROUND {}: {:#?}", round, monkeys);
         }
 
+        println!("{:#?}", monkeys);
         monkeys.sort_by_key(|x| x.inspect_count);
-        println!("day 11 part 1 answer => {}", monkeys.pop().unwrap().inspect_count * monkeys.pop().unwrap().inspect_count)
+        println!("day 11 part 2 answer => {}", monkeys.pop().unwrap().inspect_count * monkeys.pop().unwrap().inspect_count)
     }
 }
