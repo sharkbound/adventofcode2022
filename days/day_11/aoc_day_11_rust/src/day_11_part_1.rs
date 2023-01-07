@@ -21,31 +21,31 @@ On a single monkey's turn, it inspects and throws all of the items it is holding
 
 // #[derive(Debug)]
 struct Monkey {
-    id: u32,
-    items: VecDeque<u32>,
+    id: u64,
+    items: VecDeque<u64>,
     operation: OperationSign,
-    div_test: u32,
+    div_test: u64,
     true_target: usize,
     false_target: usize,
-    inspect_count: u32,
+    inspect_count: u64,
 }
 
 impl Monkey {
-    fn add_item(&mut self, item: u32) {
+    fn add_item(&mut self, item: u64) {
         self.items.push_back(item);
     }
 
-    fn next_item(&mut self) -> Option<u32> {
+    fn next_item(&mut self) -> Option<u64> {
         self.items.pop_front()
     }
 
-    fn inspect(&mut self, item: u32) -> u32 {
+    fn inspect(&mut self, item: u64) -> u64 {
         let result = self.operation.apply(item);
         self.inspect_count += 1;
         result
     }
 
-    fn throw_target(&self, item: u32) -> usize {
+    fn throw_target(&self, item: u64) -> usize {
         match item % self.div_test {
             0 => self.true_target,
             _ => self.false_target,
@@ -115,8 +115,8 @@ impl<'a> Day11Part1<'a> {
         match string {
             "old" => SubstituteValue::ITEM,
             int => {
-                SubstituteValue::LITERAL(int.parse::<u32>()
-                    .expect(format!(r#"invalid u32 when parsing substitute value "{}""#, string).as_str()))
+                SubstituteValue::LITERAL(int.parse::<u64>()
+                    .expect(format!(r#"invalid u64 when parsing substitute value "{}""#, string).as_str()))
             }
         }
     }
@@ -131,8 +131,8 @@ impl<'a> Day11Part1<'a> {
         }
     }
 
-    fn parse_u32_at_end_of_line(line: &str) -> u32 {
-        line.trim()[line.trim().rfind(" ").unwrap() + 1..].parse::<u32>().unwrap()
+    fn parse_u64_at_end_of_line(line: &str) -> u64 {
+        line.trim()[line.trim().rfind(" ").unwrap() + 1..].parse::<u64>().unwrap()
     }
 
     fn parse_usize_at_end_of_line(line: &str) -> usize {
@@ -141,17 +141,17 @@ impl<'a> Day11Part1<'a> {
 
     fn parse_monkey(&self, group: Vec<String>) -> Monkey {
         Monkey {
-            id: group[0].chars().into_iter().filter(|x| x.is_digit(10)).collect::<String>().parse::<u32>().unwrap(),
-            items: group[1][group[1].find(":").unwrap() + 1..].trim().split(',').map(|x| x.trim().parse::<u32>().unwrap()).collect(),
+            id: group[0].chars().into_iter().filter(|x| x.is_digit(10)).collect::<String>().parse::<u64>().unwrap(),
+            items: group[1][group[1].find(":").unwrap() + 1..].trim().split(',').map(|x| x.trim().parse::<u64>().unwrap()).collect(),
             operation: self.parse_monkey_operation(group[2].as_str()),
-            div_test: Self::parse_u32_at_end_of_line(group[3].as_str()),
+            div_test: Self::parse_u64_at_end_of_line(group[3].as_str()),
             true_target: Self::parse_usize_at_end_of_line(group[4].as_str()),
             false_target: Self::parse_usize_at_end_of_line(group[5].as_str()),
             inspect_count: 0,
         }
     }
 
-    fn do_round_for_single_monkey(monkey: &mut Monkey) -> Vec<(usize, u32)> {
+    fn do_round_for_single_monkey(monkey: &mut Monkey) -> Vec<(usize, u64)> {
         let mut dests = vec![];
         while let Some(item) = monkey.next_item() {
             let div_result = monkey.inspect(item) / 3;
