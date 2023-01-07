@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use rustutils::collections::{CollectToHashSet, CollectToVec};
+use rustutils::collections::{CollectToHashSet};
 use rustutils::logging::DebugLog;
 
 #[derive(Eq, PartialEq, Hash, Debug)]

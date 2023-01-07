@@ -1,4 +1,5 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashSet};
+use std::collections::vec_deque::VecDeque;
 use std::hash::Hash;
 
 pub trait CollectToVec<T, I>: Sized

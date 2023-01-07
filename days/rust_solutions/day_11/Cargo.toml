@@ -1,12 +1,12 @@
 [package]
-name = "aoc_day_11_rust"
+name = "day_11"
 version = "0.1.0"
 edition = "2021"
-default-run = "aoc_day_11_rust"
+default-run = "day_11"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 #[profile.release]
 #opt-level = 3
 
 [dependencies]
-rustutils = { path = "../../../rustutils" }
+rustutils = { path = "../rustutils" }
