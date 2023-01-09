@@ -1,21 +1,9 @@
-use rustutils::arg_parser::args::{ArgOption, ArgOptionValueType, ArgType, BasicArg};
-use rustutils::arg_parser::parsers::ArgParser;
+use rustutils::arg_parser::args::{ArgCollection, ArgDataType};
 
 fn main() {
-    let parser = ArgParser::new(vec![
-        BasicArg::boxed(
-            ArgType::Optional,
-            ArgOptionValueType::UnsignedInt,
-            "passes".to_owned(),
-            None,
-            "the number of passes to do".to_owned(), None)
-    ]);
-
-    dbg!(BasicArg::boxed(
-        ArgType::Optional,
-        ArgOptionValueType::UnsignedInt,
-        "passes".to_owned(),
-        None,
-        "the number of passes to do".to_owned(), None).parse("-1")
-    );
+    let mut parser = ArgCollection::new();
+    parser.bind_env_args();
+    parser.add_optional("output", Some("o"), "output file to write to", ArgDataType::String, "output.txt");
+    parser.add_bool_flag("silent", Some("s"), "optional bool flag", false);
+    parser.print_help_and_exit("FOOL! YOU CALLED ME! HAHAHAHA!")
 }
