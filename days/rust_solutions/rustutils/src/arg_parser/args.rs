@@ -1,3 +1,6 @@
+use std::fmt::{Debug};
+use crate::errors::GeneralError;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ArgDataType {
     String,
@@ -20,6 +23,7 @@ pub enum ArgType {
     Optional { default: String },
 }
 
+
 pub struct Arg {
     pub name: String,
     pub alias: Option<String>,
@@ -38,16 +42,24 @@ impl Arg {
             data_type,
         }
     }
+
+    pub fn dashed_name(&self) -> String {
+        format!("--{}", self.name)
+    }
+
+    pub fn dashed_alias(&self) -> Option<String> {
+        self.alias.as_ref().map(|s| format!("-{}", s))
+    }
 }
 
 pub struct ArgCollection {
     args: Vec<Arg>,
-    strings: Option<Vec<String>>,
+    strings: Vec<String>,
 }
 
 impl<'a> ArgCollection {
     pub fn new() -> Self {
-        ArgCollection { args: Vec::new(), strings: None }
+        ArgCollection { args: Vec::new(), strings: vec![] }
     }
 
     pub fn add_arg(&mut self, name: &str, alias: Option<&str>, help: &str, data_type: ArgDataType, ty: ArgType) -> &Arg {
@@ -68,7 +80,7 @@ impl<'a> ArgCollection {
     }
 
     pub fn bind(&mut self, strings: Vec<String>) {
-        self.strings = Some(strings);
+        self.strings = strings;
     }
 
     pub fn get_arg_ref(&self, name: &str) -> Option<&Arg> {
@@ -76,7 +88,8 @@ impl<'a> ArgCollection {
     }
 
     pub fn bind_env_args(&mut self) {
-        self.strings = std::env::args().collect()
+        // dbg!(std::env::args().collect::<Vec<String>>());
+        self.strings = std::env::args().collect();
     }
 
     pub fn print_help_and_exit(&self, error: &str) {
@@ -94,38 +107,34 @@ impl<'a> ArgCollection {
         println!("{}", output);
         std::process::exit(1);
     }
+
+    fn get_strings_starting_at_arg_match(&self, arg: &Arg, length: usize) -> Option<&[String]> {
+        // todo: add support for aliases matching
+        let match_index = self.strings.iter().position(|s| s.eq_ignore_ascii_case(arg.dashed_name().as_str()))?;
+        let strings = self.strings.get(match_index..(match_index + length))?;
+        if strings.len() == 0 {
+            return None;
+        }
+        Some(strings)
+    }
+
+    pub fn parse_bool(&self, name: &str) -> Result<bool, Box<dyn std::error::Error>> {
+        let arg = self.args.iter()
+            .find(|x| x.name == name)
+            .ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))?;
+
+        let strings = self.get_strings_starting_at_arg_match(arg, 1)
+            .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
+
+        match strings.len() {
+            1 => Ok(true),
+            2.. => {
+                strings.get(1).and_then(|x| x.parse::<bool>().ok()).ok_or(
+                    GeneralError::boxed("ParseBoolError", &format!(r#"Could not convert "{}" to a bool"#, strings[1]))
+                )
+            }
+            _ => Err(GeneralError::boxed("Error", &format!("this should not happen")))
+        }
+    }
 }
 
-type BoxedError = Box<dyn std::error::Error>;
-
-impl ArgCollection {
-    fn search_strings_for_arg(&self, arg: &Arg) -> Option<String> {
-        match self.strings {
-            Some(ref strings) => {
-                Self::_search_for_arg_match(arg, strings)
-            }
-            None => None,
-        }
-    }
-
-    fn _search_for_arg_match(arg: &Arg, strings: &Vec<String>) -> Option<String> {
-        match strings.iter().position(|s| s == arg.name.as_str()) {
-            Some(index) => {
-                Self::_check_match_length(arg, strings, index)
-            }
-            None => None,
-        }
-    }
-
-    fn _check_match_length(arg: &Arg, strings: &Vec<String>, index: usize) -> Option<String> {
-        match arg.ty {
-            ArgType::Required => {
-                todo!()
-            }
-            _ => None
-        }
-    }
-    pub fn parse_bool(&self, name: &str) -> Result<bool, BoxedError> {
-        todo!()
-    }
-}

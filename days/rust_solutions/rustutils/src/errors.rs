@@ -1,9 +1,21 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
-struct GeneralError {
-    name: String,
-    message: String,
+pub struct GeneralError {
+    pub name: String,
+    pub message: String,
+}
+
+impl GeneralError {
+    pub fn new(name: &str, message: &str) -> GeneralError {
+        GeneralError {
+            name: name.to_string(),
+            message: message.to_string(),
+        }
+    }
+    pub fn boxed(name: &str, message: &str) -> Box<GeneralError> {
+        Box::new(Self::new(name, message))
+    }
 }
 
 impl Debug for GeneralError {
