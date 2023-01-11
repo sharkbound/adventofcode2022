@@ -108,33 +108,63 @@ impl<'a> ArgCollection {
         std::process::exit(1);
     }
 
-    fn get_strings_starting_at_arg_match(&self, arg: &Arg, length: usize) -> Option<&[String]> {
-        // todo: add support for aliases matching
-        let match_index = self.strings.iter().position(|s| s.eq_ignore_ascii_case(arg.dashed_name().as_str()))?;
-        let strings = self.strings.get(match_index..(match_index + length))?;
-        if strings.len() == 0 {
-            return None;
-        }
-        Some(strings)
+    fn index_of_arg_match(&self, arg: &Arg) -> Option<usize> {
+        let valid_matches = [arg.dashed_name().to_owned(), arg.dashed_alias().unwrap_or(String::new())];
+        self.strings.iter()
+            .position(|value|
+                valid_matches[0].eq_ignore_ascii_case(value) || valid_matches[1].eq_ignore_ascii_case(value)
+            )
     }
 
-    pub fn parse_bool(&self, name: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let arg = self.args.iter()
-            .find(|x| x.name == name)
+    pub fn parse_bool_flag(&self, name: &str) -> Result<bool, Box<dyn std::error::Error>> {
+        let arg = self.args.iter().find(|x| x.name.eq_ignore_ascii_case(name))
             .ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))?;
 
-        let strings = self.get_strings_starting_at_arg_match(arg, 1)
+        /*
+           todo: this is repeated quite often, add a helper for it! also add a helper to get a Option<&Arg> from self.args by name!
+
+            x.eq_ignore_ascii_case(arg.dashed_name().as_str())
+                    || x.eq_ignore_ascii_case(arg.dashed_alias().unwrap_or(String::new()).as_str()
+         */
+        Ok(self.strings.iter()
+            .any(|x|
+                x.eq_ignore_ascii_case(arg.dashed_name().as_str())
+                    || x.eq_ignore_ascii_case(arg.dashed_alias().unwrap_or(String::new()).as_str())
+            )
+        )
+    }
+
+    pub fn parse_string(&self, name: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let arg = self._find_arg_in_strings(&name)?;
+        let match_index = self.index_of_arg_match(arg)
             .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
 
-        match strings.len() {
-            1 => Ok(true),
+        let after_match = self.strings.get((match_index)..)
+            .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
+
+        match after_match.len() {
+            1 => Err(GeneralError::boxed("MissingValueForArgument", &format!("missing required value for arg: {} ", arg.name))),
             2.. => {
-                strings.get(1).and_then(|x| x.parse::<bool>().ok()).ok_or(
-                    GeneralError::boxed("ParseBoolError", &format!(r#"Could not convert "{}" to a bool"#, strings[1]))
-                )
+                Ok(after_match.iter().skip(1).take_while(|x| !x.starts_with('-')).map(|x| x.to_owned()).collect::<Vec<_>>().join(" "))
             }
             _ => Err(GeneralError::boxed("Error", &format!("this should not happen")))
         }
+    }
+
+    pub fn parse_i32(&self, name: &str) -> Result<i32, Box<dyn std::error::Error>> {
+        let string_match = self.parse_string(name)?;
+        match string_match.parse::<i32>()
+        {
+            Ok(x) => Ok(x),
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!("Invalid value for int32: {}", string_match)))
+        }
+    }
+
+    fn _find_arg_in_strings(&self, name: &str) -> Result<&Arg, Box<dyn std::error::Error>> {
+        // todo: this is kinda out of sync of the other functions, update this!
+        self.args.iter()
+            .find(|x| x.name == name)
+            .ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))
     }
 }
 
