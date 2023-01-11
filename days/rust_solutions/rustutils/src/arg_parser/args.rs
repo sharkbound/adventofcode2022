@@ -1,4 +1,7 @@
-use std::fmt::{Debug};
+use std::error::Error;
+use std::fmt::{Debug, Display};
+use std::str::FromStr;
+
 use crate::errors::GeneralError;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -49,6 +52,17 @@ impl Arg {
 
     pub fn dashed_alias(&self) -> Option<String> {
         self.alias.as_ref().map(|s| format!("-{}", s))
+    }
+
+    pub fn matches(&self, string: &str) -> bool {
+        self.dashed_name().eq_ignore_ascii_case(string) || self.dashed_alias().as_ref().map(|s| s.eq_ignore_ascii_case(string)).unwrap_or(false)
+    }
+
+    pub fn try_get_match_index(&self, args: &[String]) -> Option<usize> {
+        args.iter().position(|value|
+            self.dashed_name().eq_ignore_ascii_case(value)
+                || self.dashed_alias().map(|alias| alias.eq_ignore_ascii_case(value)).unwrap_or(false)
+        )
     }
 }
 
@@ -108,42 +122,56 @@ impl<'a> ArgCollection {
         std::process::exit(1);
     }
 
-    fn index_of_arg_match(&self, arg: &Arg) -> Option<usize> {
-        let valid_matches = [arg.dashed_name().to_owned(), arg.dashed_alias().unwrap_or(String::new())];
-        self.strings.iter()
-            .position(|value|
-                valid_matches[0].eq_ignore_ascii_case(value) || valid_matches[1].eq_ignore_ascii_case(value)
-            )
+    pub fn get_arg_by_name(&self, name: &str) -> Option<&Arg> {
+        self.args.iter().find(|a| a.name.eq_ignore_ascii_case(name) /*|| match &a.alias {
+            Some(alias) => alias.eq_ignore_ascii_case(name),
+            None => false
+        }*/)
+    }
+
+    pub fn get_arg_by_name_or_error(&self, name: &str) -> Result<&Arg, Box<dyn std::error::Error>> {
+        self.get_arg_by_name(name).ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))
     }
 
     pub fn parse_bool_flag(&self, name: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let arg = self.args.iter().find(|x| x.name.eq_ignore_ascii_case(name))
-            .ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))?;
-
-        /*
-           todo: this is repeated quite often, add a helper for it! also add a helper to get a Option<&Arg> from self.args by name!
-
-            x.eq_ignore_ascii_case(arg.dashed_name().as_str())
-                    || x.eq_ignore_ascii_case(arg.dashed_alias().unwrap_or(String::new()).as_str()
-         */
-        Ok(self.strings.iter()
-            .any(|x|
-                x.eq_ignore_ascii_case(arg.dashed_name().as_str())
-                    || x.eq_ignore_ascii_case(arg.dashed_alias().unwrap_or(String::new()).as_str())
-            )
-        )
+        let arg = self.get_arg_by_name_or_error(name)?;
+        Ok(self.strings.iter().any(|x| arg.matches(x)) || match arg.ty {
+            ArgType::BoolFlag { default } => default,
+            _ => false
+        })
     }
 
-    pub fn parse_string(&self, name: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let arg = self._find_arg_in_strings(&name)?;
-        let match_index = self.index_of_arg_match(arg)
-            .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
+    pub fn parse_string(&self, name: &str) -> Result<String, Box<dyn Error>> {
+        let arg = self.get_arg_by_name_or_error(name)?;
 
-        let after_match = self.strings.get((match_index)..)
-            .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
+        // let match_index = arg.try_get_match_index(&self.strings)
+        //     .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
+        let default = match &arg.ty {
+            ArgType::Optional { default } => {
+                Some(default.to_owned())
+            }
+            ArgType::BoolFlag { default } => {
+                Some(default.to_string())
+            }
+            _ => { None }
+        };
 
+        let match_index = arg.try_get_match_index(&self.strings);
+        if match_index.is_none() {
+            if default.is_some() {
+                return Ok(default.unwrap());
+            }
+            return Err(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)));
+        }
+
+        let after_match = self.strings.get((match_index.unwrap())..).map(|x| x.to_vec()).unwrap_or(vec![arg.dashed_name()]);
         match after_match.len() {
-            1 => Err(GeneralError::boxed("MissingValueForArgument", &format!("missing required value for arg: {} ", arg.name))),
+            1 => {
+                match default {
+                    Some(value) => Ok(value),
+                    None => Err(GeneralError::boxed("MissingValueForArgument", &format!("missing required value for arg: {} ", arg.name)))
+                }
+            }
             2.. => {
                 Ok(after_match.iter().skip(1).take_while(|x| !x.starts_with('-')).map(|x| x.to_owned()).collect::<Vec<_>>().join(" "))
             }
@@ -151,20 +179,139 @@ impl<'a> ArgCollection {
         }
     }
 
-    pub fn parse_i32(&self, name: &str) -> Result<i32, Box<dyn std::error::Error>> {
+// fn _parse_generic<T, F, E>(&self, value: &str, err_provider: F) -> Result<T, E>
+//     where T: FromStr,
+//           F: (Fn(T::Err) -> E),
+//           E: Display + Debug + Error
+// {
+//     match T::from_str(value) {
+//         Ok(x) => Ok(x),
+//         Err(e) => { Err(err_provider(e)) }
+//     }
+// }
+
+
+    pub fn parse_i32(&self, name: &str) -> Result<i32, Box<dyn Error>> {
         let string_match = self.parse_string(name)?;
         match string_match.parse::<i32>()
         {
             Ok(x) => Ok(x),
-            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!("Invalid value for int32: {}", string_match)))
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!(r#"Invalid value for int32: "{}" "#, string_match)))
         }
     }
 
-    fn _find_arg_in_strings(&self, name: &str) -> Result<&Arg, Box<dyn std::error::Error>> {
-        // todo: this is kinda out of sync of the other functions, update this!
-        self.args.iter()
-            .find(|x| x.name == name)
-            .ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))
+    pub fn parse_i64(&self, name: &str) -> Result<i64, Box<dyn Error>> {
+        let string_match = self.parse_string(name)?;
+        match string_match.parse::<i64>()
+        {
+            Ok(x) => Ok(x),
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!(r#"Invalid value for int64: "{}""#, string_match)))
+        }
+    }
+
+    pub fn parse_u32(&self, name: &str) -> Result<u32, Box<dyn Error>> {
+        let string_match = self.parse_string(name)?;
+        match string_match.parse::<u32>()
+        {
+            Ok(x) => Ok(x),
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!(r#"Invalid value for unsigned int32: "{}""#, string_match)))
+        }
+    }
+
+    pub fn parse_u64(&self, name: &str) -> Result<u64, Box<dyn Error>> {
+        let string_match = self.parse_string(name)?;
+        match string_match.parse::<u64>()
+        {
+            Ok(x) => Ok(x),
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!(r#"Invalid value for unsigned int64: "{}""#, string_match)))
+        }
+    }
+
+    pub fn parse_f32(&self, name: &str) -> Result<f32, Box<dyn Error>> {
+        let string_match = self.parse_string(name)?;
+        match string_match.parse::<f32>()
+        {
+            Ok(x) => Ok(x),
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!(r#"Invalid value for float32: "{}""#, string_match)))
+        }
+    }
+
+    pub fn parse_f64(&self, name: &str) -> Result<f64, Box<dyn Error>> {
+        let string_match = self.parse_string(name)?;
+        match string_match.parse::<f64>()
+        {
+            Ok(x) => Ok(x),
+            Err(_) => Err(GeneralError::boxed("InvalidIntError", &format!(r#"Invalid value for float64: "{}""#, string_match)))
+        }
+    }
+
+    pub fn check(&self) {
+        for arg in self.args.iter() {
+            if arg.ty != ArgType::Required {
+                continue;
+            }
+
+            let matched = match self.parse_string(&arg.name) {
+                Ok(res) => res,
+                Err(_) => {
+                    self.print_help_and_exit(&format!("Missing require argument: {}", arg.dashed_name()));
+                    unreachable!()
+                }
+            };
+
+            match arg.data_type {
+                ArgDataType::Bool => {
+                    if matched.parse::<bool>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid bool (must be `true` or `false`): {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                ArgDataType::I32 => {
+                    if matched.parse::<i32>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid int32 number: {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                ArgDataType::I64 => {
+                    if matched.parse::<i32>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid int64 number: {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                ArgDataType::U32 => {
+                    if matched.parse::<u32>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid number (must be 0 or greater): {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                ArgDataType::U64 => {
+                    if matched.parse::<u64>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid number (must be 0 or greater): {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                ArgDataType::F32 => {
+                    if matched.parse::<f32>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid decimal number: {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                ArgDataType::F64 => {
+                    if matched.parse::<f32>().is_err() {
+                        self.print_help_and_exit(&format!("Invalid decimal number: {}", matched));
+                        unreachable!()
+                    }
+                }
+
+                _ => {}
+            }
+        }
     }
 }
 
