@@ -106,7 +106,7 @@ impl<'a> ArgCollection {
         self.strings = std::env::args().collect();
     }
 
-    pub fn print_help_and_exit(&self, error: &str) {
+    pub fn print_help_and_exit(&self, error: &str) -> ! {
         let mut output = String::new();
         output.push_str(&format!("Invalid Usage: {}", error));
 
@@ -116,6 +116,11 @@ impl<'a> ArgCollection {
                 output.push_str(&format!("-{} | ", alias));
             }
             output.push_str(&format!("--{} => {}", arg.name, arg.help));
+            output.push_str(&match arg.ty {
+                ArgType::Optional { ref default } => format!(r#"  || DEFAULT: {}"#, default),
+                ArgType::Required => format!(r#"  || REQUIRED"#),
+                _ => String::default()
+            });
         }
 
         println!("{}", output);
@@ -129,11 +134,11 @@ impl<'a> ArgCollection {
         }*/)
     }
 
-    pub fn get_arg_by_name_or_error(&self, name: &str) -> Result<&Arg, Box<dyn std::error::Error>> {
+    pub fn get_arg_by_name_or_error(&self, name: &str) -> Result<&Arg, Box<dyn Error>> {
         self.get_arg_by_name(name).ok_or(GeneralError::boxed("ArgNotFoundError", &format!("Could not find any arg by the name: {}", name)))
     }
 
-    pub fn parse_bool_flag(&self, name: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn parse_bool_flag(&self, name: &str) -> Result<bool, Box<dyn Error>> {
         let arg = self.get_arg_by_name_or_error(name)?;
         Ok(self.strings.iter().any(|x| arg.matches(x)) || match arg.ty {
             ArgType::BoolFlag { default } => default,
@@ -144,8 +149,6 @@ impl<'a> ArgCollection {
     pub fn parse_string(&self, name: &str) -> Result<String, Box<dyn Error>> {
         let arg = self.get_arg_by_name_or_error(name)?;
 
-        // let match_index = arg.try_get_match_index(&self.strings)
-        //     .ok_or(GeneralError::boxed("ArgMatchNotFound", &format!("Could not find any match for arg: {} ", arg.name)))?;
         let default = match &arg.ty {
             ArgType::Optional { default } => {
                 Some(default.to_owned())
@@ -178,17 +181,6 @@ impl<'a> ArgCollection {
             _ => Err(GeneralError::boxed("Error", &format!("this should not happen")))
         }
     }
-
-// fn _parse_generic<T, F, E>(&self, value: &str, err_provider: F) -> Result<T, E>
-//     where T: FromStr,
-//           F: (Fn(T::Err) -> E),
-//           E: Display + Debug + Error
-// {
-//     match T::from_str(value) {
-//         Ok(x) => Ok(x),
-//         Err(e) => { Err(err_provider(e)) }
-//     }
-// }
 
 
     pub fn parse_i32(&self, name: &str) -> Result<i32, Box<dyn Error>> {
@@ -255,7 +247,6 @@ impl<'a> ArgCollection {
                 Ok(res) => res,
                 Err(_) => {
                     self.print_help_and_exit(&format!("Missing require argument: {}", arg.dashed_name()));
-                    unreachable!()
                 }
             };
 
@@ -263,49 +254,42 @@ impl<'a> ArgCollection {
                 ArgDataType::Bool => {
                     if matched.parse::<bool>().is_err() {
                         self.print_help_and_exit(&format!("Invalid bool (must be `true` or `false`): {}", matched));
-                        unreachable!()
                     }
                 }
 
                 ArgDataType::I32 => {
                     if matched.parse::<i32>().is_err() {
                         self.print_help_and_exit(&format!("Invalid int32 number: {}", matched));
-                        unreachable!()
                     }
                 }
 
                 ArgDataType::I64 => {
                     if matched.parse::<i32>().is_err() {
                         self.print_help_and_exit(&format!("Invalid int64 number: {}", matched));
-                        unreachable!()
                     }
                 }
 
                 ArgDataType::U32 => {
                     if matched.parse::<u32>().is_err() {
                         self.print_help_and_exit(&format!("Invalid number (must be 0 or greater): {}", matched));
-                        unreachable!()
                     }
                 }
 
                 ArgDataType::U64 => {
                     if matched.parse::<u64>().is_err() {
                         self.print_help_and_exit(&format!("Invalid number (must be 0 or greater): {}", matched));
-                        unreachable!()
                     }
                 }
 
                 ArgDataType::F32 => {
                     if matched.parse::<f32>().is_err() {
                         self.print_help_and_exit(&format!("Invalid decimal number: {}", matched));
-                        unreachable!()
                     }
                 }
 
                 ArgDataType::F64 => {
                     if matched.parse::<f32>().is_err() {
                         self.print_help_and_exit(&format!("Invalid decimal number: {}", matched));
-                        unreachable!()
                     }
                 }
 

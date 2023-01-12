@@ -1,5 +1,3 @@
-pub mod file_input_writer;
-
 use std::fs::File;
 use std::sync::Arc;
 use reqwest::Client;
@@ -8,7 +6,7 @@ use rustutils::apply_ext::ApplyOwnExt;
 
 pub async fn get_aoc_input(day: u32) -> Result<String, Box<dyn std::error::Error>> {
     // path originates from the workspace directory here
-    let session = std::io::read_to_string(File::open("../../secrets/session.txt")?)?;
+    let session = std::io::read_to_string(File::open(r"D:\git\adventofcode2022\secrets\session.txt")?)?;
     let uri = &format!("https://www.adventofcode.com/2022/day/{}/input", day);
 
     match create_client(uri, &session).get(uri).send().await {
