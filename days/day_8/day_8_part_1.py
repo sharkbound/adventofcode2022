@@ -42,7 +42,7 @@ class Day8Part1(Day):
             if i[0] == 0 or i[1] == 0 or i[0] == data.shape[0] - 1 or i[1] == data.shape[1] - 1:
                 total += 1
                 continue
-                
+
             if self.check_visibility(data, i, v):
                 total += 1
         self.print_answer(total)
