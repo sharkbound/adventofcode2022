@@ -4,12 +4,13 @@ use nom::multi::separated_list1;
 
 
 fn main() {
-    let ints = "1 2 10 86 1996 1857 1000";
+    let ints = "1 -2 10 86 1996 1857 1000";
     dbg!(parse_ints(ints).ok());
 }
 
 
 fn parse_ints(input: &str) -> IResult<&str, Vec<i32>> {
+    //                            input V, V return type
     fn parse(input: &str) -> IResult<&str, i32> {
         character::complete::i32(input)
     }
