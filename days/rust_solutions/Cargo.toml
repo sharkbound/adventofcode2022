@@ -6,5 +6,6 @@ members = [
     "day_11",
     "aoc",
     "misccode",
+    "nom_testing"
 ]
 
