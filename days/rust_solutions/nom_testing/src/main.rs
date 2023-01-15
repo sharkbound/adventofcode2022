@@ -1,8 +1,4 @@
-use nom::{IResult};
-use nom::bytes::complete::{is_not, tag, take_till};
-use nom::bytes::streaming::{is_a};
-use nom::character::complete::{newline};
-use nom::character::{is_alphabetic, is_alphanumeric};
+use nom::{bytes, character, IResult};
 
 
 static TO_PARSE: &'static str = "\
@@ -15,39 +11,36 @@ Items
 
 fn main() {
     let ints = "1 -2 10 86 1996 1857 1000";
-    println!("{:?}", match parse(TO_PARSE) {
+    match parse(TO_PARSE) {
         Ok(value) => {
-            println!("{:?}", value);
+            println!("PASS! {:?}", value);
         }
-        Err(e) => {
-            match e {
-                nom::Err::Incomplete(v) => { println!("{:?}", v) }
-                nom::Err::Error(e) => { println!("code: {:?}", e.code) }
-                nom::Err::Failure(f) => { println!("{:?}", f.code) }
-            }
+        Err(_) => {
+            println!("FAIL!")
         }
-    });
+    };
 }
 
+
 fn not_whitespace(input: &str) -> IResult<&str, &str> {
-    is_not(" \r\n\t")(input)
+    bytes::complete::is_not(" \r\n\t")(input)
 }
 
 fn parse(input: &str) -> IResult<&str, Vec<&str>> {
-    let (input, _) = tag("Items")(input)?;
-    let (input, _) = newline(input)?;
-    let (mut input, _) = is_a(" \t\n")(input)?;
+    let (input, _) = bytes::complete::tag("Items")(input)?;
+    let (input, _) = character::complete::line_ending(input)?;
+    let (mut input, _) = bytes::streaming::is_a(" \t\n")(input)?;
     let mut items = vec![];
     let mut _trash = "";
     loop {
-        (input, _trash) = take_till(|x: char| x.is_alphanumeric())(input)?;
+        (input, _trash) = bytes::complete::take_till(|x: char| x.is_alphanumeric())(input)?;
         input = match not_whitespace(input) {
             Ok((rest, item)) => {
                 items.push(item);
                 rest
             }
-            Err(_) => return Ok((input, items)),
+            Err(_) => break,
         };
     }
-    Ok(("", items))
+    Ok((input, items))
 }
