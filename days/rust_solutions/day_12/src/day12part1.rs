@@ -1,5 +1,7 @@
+use std::borrow::Borrow;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::ops::Deref;
 use std::path::PathBuf;
 
 pub struct Day12part1 {
@@ -7,31 +9,24 @@ pub struct Day12part1 {
     heightmap: Vec<Vec<char>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Point(pub usize, pub usize);
-
 impl Point {
-    pub fn height(&self, grid: &Vec<Vec<char>>) -> Option<u32> {
-        grid.get(self.0)
-            .and_then(|x| x.get(self.1))
-            .and_then(|x| (*x as u32).checked_sub('a' as u32))
+    fn try_add(&self, y: i32, x: i32) -> Option<Point> {
+        return if (self.0 as i32 + y) < 0 {
+            None
+        } else if (self.1 as i32 + x) < 0 {
+            None
+        } else {
+            Some(Point(
+                (self.0 as i32 + y) as usize,
+                (self.1 as i32 + x) as usize,
+            ))
+        };
     }
 }
 
 static ALLOWED_OFFSETS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-impl Point {
-    pub fn neighbors(&self) -> Vec<Self> {
-        ALLOWED_OFFSETS.iter()
-            .filter_map(|(y, x)|
-                if (self.0 as i32 + y) < 0 || (self.1 as i32 + x) < 0 {
-                    None
-                } else {
-                    Some(Point((self.0 as i32 + y) as usize, (self.1 as i32 + x) as usize))
-                }
-            ).collect()
-    }
-}
 
 #[derive(Debug)]
 struct CharPos {
@@ -39,12 +34,62 @@ struct CharPos {
     pub chr: char,
 }
 
+trait HeightMap {
+    fn height(&self, y: usize, x: usize) -> Option<u32>;
+    fn height_at_point(&self, point: Point) -> Option<u32>;
+    fn valid_moves(&self, point: Point) -> Vec<(Point, u32)>;
+    fn neighbors(&self, point: Point) -> Vec<Point>;
+}
+
+impl HeightMap for Vec<Vec<char>> {
+    fn height(&self, y: usize, x: usize) -> Option<u32> {
+        match self.get(y).and_then(|v| v.get(x)) {
+            Some('S') => Some(0),
+            Some('E') => Some(25),
+            Some(chr) => (*chr as u32).checked_sub('a' as u32),
+            None => None,
+        }
+    }
+
+    fn height_at_point(&self, point: Point) -> Option<u32> {
+        self.height(point.0, point.1)
+    }
+
+    fn valid_moves(&self, point: Point) -> Vec<(Point, u32)> {
+        let current_height = match self.height_at_point(point) {
+            None => {
+                return vec![];
+            }
+            Some(x) => x,
+        };
+
+        self.neighbors(point)
+            .iter()
+            .filter_map(|p| match self.height_at_point(*p) {
+                None => None,
+                Some(h) => {
+                    if h as i32 - current_height as i32 > 1 {
+                        None
+                    } else {
+                        Some((*p, h))
+                    }
+                }
+            })
+            .collect()
+    }
+
+    fn neighbors(&self, point: Point) -> Vec<Point> {
+        ALLOWED_OFFSETS
+            .iter()
+            .filter_map(|(y, x)| point.try_add(*y, *x))
+            .collect()
+    }
+}
 
 trait ElevationExt {
     fn elevation(&self) -> u16;
     fn elevation_checked(&self) -> Option<u16>;
 }
-
 
 impl ElevationExt for char {
     fn elevation(&self) -> u16 {
@@ -64,26 +109,35 @@ impl Day12part1 {
                 panic!("Unable to read input file: {:?} !", e);
             }
         };
-        Self { file, heightmap: Vec::new() }
+        Self {
+            file,
+            heightmap: Vec::new(),
+        }
     }
 
     pub fn parse(&self) -> Vec<Vec<char>> {
-        BufReader::new(&self.file).lines().filter_map(|x| match x {
-            Ok(line) => Some(line.chars().collect::<Vec<_>>()),
-            Err(_) => panic!("Unable to read line from input file: {:?}", &self.file),
-        }).collect::<Vec<_>>()
+        BufReader::new(&self.file)
+            .lines()
+            .filter_map(|x| match x {
+                Ok(line) => Some(line.chars().collect::<Vec<_>>()),
+                Err(_) => panic!("Unable to read line from input file: {:?}", &self.file),
+            })
+            .collect::<Vec<_>>()
     }
 
     fn _find_char(&self, find_char: char) -> CharPos {
-        let data = self.heightmap
+        let data = self
+            .heightmap
             .iter()
             .enumerate()
-            .filter_map(|(row_idx, row)| {
-                match row.iter().position(|chr| chr == &find_char) {
+            .filter_map(
+                |(row_idx, row)| match row.iter().position(|chr| chr == &find_char) {
                     Some(col_idx) => Some((row_idx, col_idx)),
-                    None => None
-                }
-            }).nth(0).unwrap();
+                    None => None,
+                },
+            )
+            .nth(0)
+            .unwrap();
 
         CharPos {
             point: Point(data.0, data.1),
@@ -91,11 +145,11 @@ impl Day12part1 {
         }
     }
 
-
     pub fn solve(&mut self) {
         self.heightmap = self.parse();
         let (start, end) = (self._find_char('S'), self._find_char('E'));
-        println!("{:?} {:?}", start, Point(0, 0).height(&self.heightmap));
+        println!("{:?}", self.heightmap.height_at_point(Point(0, 1)));
+        println!("{:?} {:?}", start, self.heightmap.valid_moves(Point(3, 0)));
     }
 }
 /*

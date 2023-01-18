@@ -34,7 +34,6 @@ fn hex_color(input: &str) -> IResult<&str, Color> {
     dbg!(input);
     let (input, (red, green, blue)) = tuple((hex_primary, hex_primary, hex_primary))(input)?;
     dbg!(input, red, green, blue);
-
     Ok((input, Color { red, green, blue }))
 }
 
