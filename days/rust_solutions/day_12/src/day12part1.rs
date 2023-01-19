@@ -1,13 +1,7 @@
-use std::borrow::Borrow;
+use rustutils::io::FileBuilder;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::ops::Deref;
 use std::path::PathBuf;
-
-pub struct Day12part1 {
-    file: File,
-    heightmap: Vec<Vec<char>>,
-}
 
 #[derive(Debug, Copy, Clone)]
 struct Point(pub usize, pub usize);
@@ -101,28 +95,33 @@ impl ElevationExt for char {
     }
 }
 
+pub struct Day12part1 {
+    file: PathBuf,
+    heightmap: Vec<Vec<char>>,
+}
+
 impl Day12part1 {
     pub fn new(input_path: PathBuf) -> Self {
-        let file = match File::options().read(true).open(input_path) {
-            Ok(file) => file,
-            Err(e) => {
-                panic!("Unable to read input file: {:?} !", e);
-            }
-        };
         Self {
-            file,
+            file: input_path,
             heightmap: Vec::new(),
         }
     }
 
     pub fn parse(&self) -> Vec<Vec<char>> {
-        BufReader::new(&self.file)
-            .lines()
-            .filter_map(|x| match x {
-                Ok(line) => Some(line.chars().collect::<Vec<_>>()),
-                Err(_) => panic!("Unable to read line from input file: {:?}", &self.file),
-            })
-            .collect::<Vec<_>>()
+        match FileBuilder::from_pathbuf(self.file.clone())
+            .read()
+            .buffered_reader()
+        {
+            Ok(reader) => reader,
+            Err(e) => panic!("Cannot read {:?}: {}", self.file, e),
+        }
+        .lines()
+        .filter_map(|x| match x {
+            Ok(line) => Some(line.chars().collect::<Vec<_>>()),
+            Err(_) => panic!("Unable to read line from input file: {:?}", &self.file),
+        })
+        .collect::<Vec<_>>()
     }
 
     fn _find_char(&self, find_char: char) -> CharPos {
@@ -145,10 +144,8 @@ impl Day12part1 {
         }
     }
 
-    fn path_find(&self, start: Point, end: Point)  {
-        let path = vec![];
-
-
+    fn path_find(&self, start: Point, end: Point) {
+        //       let path = vec![];
     }
 
     pub fn solve(&mut self) {
