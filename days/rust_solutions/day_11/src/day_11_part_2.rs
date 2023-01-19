@@ -6,6 +6,7 @@ use std::path::Path;
 use std::time::Instant;
 
 use day_11::{OperationSign, SubstituteValue};
+use rustutils::io::FileBuilder;
 use rustutils::str_split;
 
 /*
@@ -82,17 +83,17 @@ impl<'a> Day11Part2<'a> {
     }
 
     fn parse(&self) -> Vec<Monkey> {
-        let file = match File::open(self.input_path) {
-            Ok(f) => f,
-            Err(_) => {
+        let reader = match FileBuilder::from_path(self.input_path)
+            .and_then(|mut x| x.read().buffered_reader().ok())
+        {
+            Some(f) => f,
+            None => {
                 panic!(
                     "======!  Cannot open file path: {:?} !======",
                     self.input_path
                 )
             }
         };
-
-        let reader = BufReader::new(file);
 
         let mut groups = Vec::new();
         let mut current_group = Vec::new();

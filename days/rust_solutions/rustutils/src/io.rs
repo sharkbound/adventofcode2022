@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::fs::{File, OpenOptions};
-use std::io;
-use std::io::{BufReader, ErrorKind};
-use std::path::PathBuf;
+use std::io::{BufReader, BufWriter};
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 pub struct FileBuilder {
     path: PathBuf,
@@ -10,11 +10,34 @@ pub struct FileBuilder {
 }
 
 impl FileBuilder {
-    pub fn new(path: PathBuf) -> FileBuilder {
-        FileBuilder {
+    pub fn from_pathbuf(path: PathBuf) -> Self {
+        Self {
             path,
             options: OpenOptions::new(),
         }
+    }
+
+    pub fn from_path(path: &Path) -> Option<Self> {
+        Some(Self {
+            path: match PathBuf::from_str(match path.to_str() {
+                Some(s) => s,
+                None => return None,
+            }) {
+                Ok(s) => s,
+                Err(_) => return None,
+            },
+            options: OpenOptions::new(),
+        })
+    }
+
+    pub fn from_str(path: &str) -> Option<Self> {
+        Some(Self {
+            path: match PathBuf::from_str(path) {
+                Ok(s) => s,
+                Err(_) => return None,
+            },
+            options: OpenOptions::new(),
+        })
     }
 
     pub fn read(&mut self) -> &mut Self {
@@ -44,6 +67,12 @@ impl FileBuilder {
 
     pub fn buffered_reader(&self) -> Result<BufReader<File>, Box<dyn Error>> {
         Ok(BufReader::new(
+            self.options.open(self.path.clone()).map_err(Box::new)?,
+        ))
+    }
+
+    pub fn buffered_writer(&self) -> Result<BufWriter<File>, Box<dyn Error>> {
+        Ok(BufWriter::new(
             self.options.open(self.path.clone()).map_err(Box::new)?,
         ))
     }
