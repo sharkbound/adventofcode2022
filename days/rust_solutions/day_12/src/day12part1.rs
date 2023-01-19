@@ -145,11 +145,17 @@ impl Day12part1 {
         }
     }
 
+    fn path_find(&self, start: Point, end: Point)  {
+        let path = vec![];
+
+
+    }
+
     pub fn solve(&mut self) {
         self.heightmap = self.parse();
+
         let (start, end) = (self._find_char('S'), self._find_char('E'));
-        println!("{:?}", self.heightmap.height_at_point(Point(0, 1)));
-        println!("{:?} {:?}", start, self.heightmap.valid_moves(Point(3, 0)));
+        println!("{:?} {:?}", start, self.heightmap.valid_moves(Point(0, 0)));
     }
 }
 /*

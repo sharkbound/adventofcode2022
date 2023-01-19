@@ -1,12 +1,12 @@
+use rustutils::numbers::is_prime_u64;
 use std::fmt::{Debug, Display};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use std::time::Instant;
-use rustutils::numbers::is_prime_u64;
 
-use rustutils::str_split;
 use day_11::{OperationSign, SubstituteValue};
+use rustutils::str_split;
 
 /*
 Operation shows how your worry level changes as that monkey inspects an item.
@@ -54,7 +54,11 @@ impl Monkey {
 
 impl Display for Monkey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{ Monkey: ID: {}, ITEMS: {:?}, INSPECT_COUNT: {} }}", self.id, self.items, self.inspect_count)
+        write!(
+            f,
+            "{{ Monkey: ID: {}, ITEMS: {:?}, INSPECT_COUNT: {} }}",
+            self.id, self.items, self.inspect_count
+        )
     }
 }
 
@@ -71,14 +75,20 @@ pub struct Day11Part2<'a> {
 
 impl<'a> Day11Part2<'a> {
     pub fn new(path: &'a str) -> Self {
-        Self { input_path: Path::new(path), supermod: 0 }
+        Self {
+            input_path: Path::new(path),
+            supermod: 0,
+        }
     }
 
     fn parse(&self) -> Vec<Monkey> {
         let file = match File::open(self.input_path) {
             Ok(f) => f,
             Err(_) => {
-                panic!("======!  Cannot open file path: {:?} !======", self.input_path)
+                panic!(
+                    "======!  Cannot open file path: {:?} !======",
+                    self.input_path
+                )
             }
         };
 
@@ -101,19 +111,32 @@ impl<'a> Day11Part2<'a> {
                     break;
                 }
             }
-        };
+        }
 
         if !current_group.is_empty() {
             groups.push(current_group);
         }
 
-        groups.into_iter().map(|group| Self::parse_monkey(group)).collect()
+        groups
+            .into_iter()
+            .map(|group| Self::parse_monkey(group))
+            .collect()
     }
 
     fn parse_monkey(group: Vec<String>) -> Monkey {
         Monkey {
-            id: group[0].chars().into_iter().filter(|x| x.is_digit(10)).collect::<String>().parse::<u64>().unwrap(),
-            items: group[1][group[1].find(":").unwrap() + 1..].trim().split(',').map(|x| x.trim().parse::<u64>().unwrap()).collect(),
+            id: group[0]
+                .chars()
+                .into_iter()
+                .filter(|x| x.is_digit(10))
+                .collect::<String>()
+                .parse::<u64>()
+                .unwrap(),
+            items: group[1][group[1].find(":").unwrap() + 1..]
+                .trim()
+                .split(',')
+                .map(|x| x.trim().parse::<u64>().unwrap())
+                .collect(),
             operation: Self::parse_monkey_operation(group[2].as_str()),
             div_test: Self::parse_u64_at_end_of_line(group[3].as_str()),
             true_target: Self::parse_usize_at_end_of_line(group[4].as_str()),
@@ -134,29 +157,42 @@ impl<'a> Day11Part2<'a> {
     fn parse_substitute(string: &str) -> SubstituteValue {
         match string {
             "old" => SubstituteValue::ITEM,
-            int => {
-                SubstituteValue::LITERAL(int.parse::<u64>()
-                    .expect(format!(r#"invalid u64 when parsing substitute value "{}""#, string).as_str()))
-            }
+            int => SubstituteValue::LITERAL(int.parse::<u64>().expect(
+                format!(r#"invalid u64 when parsing substitute value "{}""#, string).as_str(),
+            )),
         }
     }
 
     fn parse_monkey_operation(line: &str) -> OperationSign {
         let parts = str_split!(line);
-        let calc_parts = parts[parts.iter().position(|x| *x == "=").unwrap() + 1..].iter().collect::<Vec<_>>();
+        let calc_parts = parts[parts.iter().position(|x| *x == "=").unwrap() + 1..]
+            .iter()
+            .collect::<Vec<_>>();
         match *calc_parts[1] {
-            "+" => OperationSign::PLUS(Self::parse_substitute(calc_parts[0]), Self::parse_substitute(calc_parts[2])),
-            "*" => OperationSign::MUL(Self::parse_substitute(calc_parts[0]), Self::parse_substitute(calc_parts[2])),
-            symbol => { panic!(r#"unexpected operation "{}""#, symbol) }
+            "+" => OperationSign::PLUS(
+                Self::parse_substitute(calc_parts[0]),
+                Self::parse_substitute(calc_parts[2]),
+            ),
+            "*" => OperationSign::MUL(
+                Self::parse_substitute(calc_parts[0]),
+                Self::parse_substitute(calc_parts[2]),
+            ),
+            symbol => {
+                panic!(r#"unexpected operation "{}""#, symbol)
+            }
         }
     }
 
     fn parse_u64_at_end_of_line(line: &str) -> u64 {
-        line.trim()[line.trim().rfind(" ").unwrap() + 1..].parse::<u64>().unwrap()
+        line.trim()[line.trim().rfind(" ").unwrap() + 1..]
+            .parse::<u64>()
+            .unwrap()
     }
 
     fn parse_usize_at_end_of_line(line: &str) -> usize {
-        line.trim()[line.trim().rfind(" ").unwrap() + 1..].parse::<usize>().unwrap()
+        line.trim()[line.trim().rfind(" ").unwrap() + 1..]
+            .parse::<usize>()
+            .unwrap()
     }
 
     fn do_round(&self, monkeys: &mut Vec<Monkey>) {
@@ -170,13 +206,22 @@ impl<'a> Day11Part2<'a> {
     }
 
     fn get_cycle_repeat(nums: &[u64]) -> u64 {
-        let (mut primes, mut non_primes): (Vec<u64>, Vec<u64>) = nums.iter().partition(|x| is_prime_u64(**x));
+        let (mut primes, mut non_primes): (Vec<u64>, Vec<u64>) =
+            nums.iter().partition(|x| is_prime_u64(**x));
         while !non_primes.is_empty() {
             let n = non_primes.pop().unwrap();
             match Self::split_number(n) {
                 Some((x, y)) => {
-                    if is_prime_u64(x) { primes.push(x); } else { non_primes.push(x); }
-                    if is_prime_u64(y) { primes.push(y); } else { non_primes.push(y); }
+                    if is_prime_u64(x) {
+                        primes.push(x);
+                    } else {
+                        non_primes.push(x);
+                    }
+                    if is_prime_u64(y) {
+                        primes.push(y);
+                    } else {
+                        non_primes.push(y);
+                    }
                 }
                 None => {
                     primes.push(n);
@@ -203,7 +248,13 @@ impl<'a> Day11Part2<'a> {
 
     pub fn solve(&mut self) {
         let mut monkeys = self.parse();
-        self.supermod = Self::get_cycle_repeat(monkeys.iter().map(|x| x.div_test).collect::<Vec<_>>().as_slice());
+        self.supermod = Self::get_cycle_repeat(
+            monkeys
+                .iter()
+                .map(|x| x.div_test)
+                .collect::<Vec<_>>()
+                .as_slice(),
+        );
         let now = Instant::now();
         for _round in 0..10000 {
             self.do_round(&mut monkeys);
@@ -213,13 +264,12 @@ impl<'a> Day11Part2<'a> {
             // }
         }
 
-
         // println!("{:#?}", monkeys);
         monkeys.sort_by_key(|x| x.inspect_count);
-        println!("day 11 part 2 answer => {}", monkeys.pop().unwrap().inspect_count * monkeys.pop().unwrap().inspect_count);
+        println!(
+            "day 11 part 2 answer => {}",
+            monkeys.pop().unwrap().inspect_count * monkeys.pop().unwrap().inspect_count
+        );
         println!("Run took {:?}", now.elapsed());
     }
 }
-
-
-
