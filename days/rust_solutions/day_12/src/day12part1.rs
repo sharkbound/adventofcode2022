@@ -1,4 +1,6 @@
+use rustutils::collections::CollectToVec;
 use rustutils::io::FileBuilder;
+use std::collections::VecDeque;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -20,6 +22,12 @@ impl Point {
     }
 }
 
+impl PartialEq<Self> for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0 && self.1 == other.1
+    }
+}
+
 static ALLOWED_OFFSETS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
 #[derive(Debug)]
@@ -30,9 +38,9 @@ struct CharPos {
 
 trait HeightMap {
     fn height(&self, y: usize, x: usize) -> Option<u32>;
-    fn height_at_point(&self, point: Point) -> Option<u32>;
-    fn valid_moves(&self, point: Point) -> Vec<(Point, u32)>;
-    fn neighbors(&self, point: Point) -> Vec<Point>;
+    fn height_at_point(&self, point: &Point) -> Option<u32>;
+    fn valid_moves(&self, point: &Point) -> Vec<(Point, u32)>;
+    fn neighbors(&self, point: &Point) -> Vec<Point>;
 }
 
 impl HeightMap for Vec<Vec<char>> {
@@ -45,11 +53,11 @@ impl HeightMap for Vec<Vec<char>> {
         }
     }
 
-    fn height_at_point(&self, point: Point) -> Option<u32> {
+    fn height_at_point(&self, point: &Point) -> Option<u32> {
         self.height(point.0, point.1)
     }
 
-    fn valid_moves(&self, point: Point) -> Vec<(Point, u32)> {
+    fn valid_moves(&self, point: &Point) -> Vec<(Point, u32)> {
         let current_height = match self.height_at_point(point) {
             None => {
                 return vec![];
@@ -59,7 +67,7 @@ impl HeightMap for Vec<Vec<char>> {
 
         self.neighbors(point)
             .iter()
-            .filter_map(|p| match self.height_at_point(*p) {
+            .filter_map(|p| match self.height_at_point(p) {
                 None => None,
                 Some(h) => {
                     if h as i32 - current_height as i32 > 1 {
@@ -72,7 +80,7 @@ impl HeightMap for Vec<Vec<char>> {
             .collect()
     }
 
-    fn neighbors(&self, point: Point) -> Vec<Point> {
+    fn neighbors(&self, point: &Point) -> Vec<Point> {
         ALLOWED_OFFSETS
             .iter()
             .filter_map(|(y, x)| point.try_add(*y, *x))
@@ -144,15 +152,27 @@ impl Day12part1 {
         }
     }
 
-    fn path_find(&self, start: Point, end: Point) {
-        //       let path = vec![];
+    fn path_find(&self, start: &Point, end: &Point) {
+        let mut paths: VecDeque<(&Point, Vec<&Point>)> = VecDeque::new();
+        paths.push_back((start, vec![]));
+        while !paths.is_empty() {
+            let (node, path) = paths.pop_front().unwrap();
+            let valid_moves = self
+                .heightmap
+                .valid_moves(&node)
+                .into_iter()
+                .filter(|(cur, _)| cur != node)
+                .collect_to_vec();
+            println!("{:?}", valid_moves);
+        }
     }
 
     pub fn solve(&mut self) {
         self.heightmap = self.parse();
 
         let (start, end) = (self._find_char('S'), self._find_char('E'));
-        println!("{:?} {:?}", start, self.heightmap.valid_moves(Point(0, 0)));
+        println!("{:?} {:?}", start, self.heightmap.valid_moves(&Point(0, 0)));
+        self.path_find(&start.point, &end.point);
     }
 }
 /*
