@@ -1,9 +1,7 @@
 use rustc_hash::FxHashSet;
-use rustutils::apply_ext::ApplyOwnExt;
 use rustutils::collections::CollectToVec;
 use rustutils::io::FileBuilder;
 use rustutils::iterable_string_ext::JoinToStringExt;
-use rustutils::logging::DebugLog;
 use std::io::BufRead;
 use std::path::PathBuf;
 
@@ -155,54 +153,15 @@ impl Day12part1 {
     }
 
     fn path_find<F: Fn(&Point) -> bool>(&self, start: &Point, should_stop: F) -> Vec<Vec<Point>> {
-        let mut path_queue: Vec<(Point, Vec<Point>, FxHashSet<Point>)> = Vec::new();
-        let mut paths = Vec::<Vec<Point>>::new();
-        path_queue.push((*start, vec![], FxHashSet::default()));
+        let mut path = vec![*start];
+        let mut paths = Vec::new();
+        // let mut fully_visited_points = FxHashSet::default();
 
-        while !path_queue.is_empty() {
-            let (node, mut path, mut seen) = path_queue.pop().unwrap();
+        while !path.is_empty() {
+            let current = *path.last().unwrap();
+            let mut moves = self.heightmap.valid_moves(&current);
 
-            let valid_moves = self
-                .heightmap
-                .valid_moves(&node)
-                .into_iter()
-                .filter(|(cur, _)| *cur != node)
-                .collect_to_vec();
-
-            if valid_moves.is_empty() {
-                continue;
-            }
-
-            for (point, _) in valid_moves {
-                path.push(point);
-
-                if should_stop(&point) {
-                    println!(
-                        "path terminated: {:?}",
-                        path.iter()
-                            .join_to_string("->", |x| format!("({},{})", x.0, x.1))
-                    );
-                    paths.push(path.iter().map(|x| *x).collect_to_vec());
-                    continue;
-                }
-
-                if seen.contains(&point) {
-                    continue;
-                }
-
-                seen.insert(point);
-                // path.last().debug();
-                path_queue.push((
-                    point,
-                    {
-                        let mut v = Vec::new();
-                        path.clone_into(&mut v);
-                        v.push(point);
-                        v
-                    },
-                    seen.clone(),
-                ));
-            }
+            // moves.retain(|(p, _)| !path.contains(p) && !fully_visited_points.contains(p));
         }
         paths
     }
@@ -211,12 +170,21 @@ impl Day12part1 {
         self.heightmap = self.parse();
         let (start, end) = (self._find_char('S'), self._find_char('E'));
         let mut paths = self
-            .path_find(&start.point, |p| p.1 == self.heightmap[0].len() / 2)
+            .path_find(
+                &start.point,
+                |p| *p == end.point, /*p.1 == self.heightmap[0].len() / 2*/
+            )
             .iter()
             .map(|x| x.clone())
             .collect_to_vec();
         paths.sort_by_key(|x| x.len());
-        println!("{:?}", paths.first().unwrap().len());
+        println!(
+            "{:?}",
+            paths
+                .iter()
+                .map(|x| x.len())
+                .join_to_string(", ", |x| x.to_string())
+        );
     }
 }
 /*

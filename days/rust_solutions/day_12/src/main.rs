@@ -9,5 +9,5 @@ fn main() {
         .iter()
         .collect::<PathBuf>();
     Path::new(".").canonicalize().debug();
-    day_12::day12part1::Day12part1::new(input).solve();
+    day_12::day12part1::Day12part1::new(sample).solve();
 }
