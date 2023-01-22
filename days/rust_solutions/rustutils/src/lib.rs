@@ -7,6 +7,7 @@ pub mod result;
 pub mod errors;
 pub mod arg_parser;
 pub mod io;
+pub mod iterable_string_ext;
 
 
 

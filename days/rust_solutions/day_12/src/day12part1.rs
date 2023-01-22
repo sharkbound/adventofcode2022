@@ -1,11 +1,13 @@
+use rustc_hash::FxHashSet;
+use rustutils::apply_ext::ApplyOwnExt;
 use rustutils::collections::CollectToVec;
 use rustutils::io::FileBuilder;
-use std::collections::VecDeque;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use rustutils::iterable_string_ext::JoinToStringExt;
+use rustutils::logging::DebugLog;
+use std::io::BufRead;
 use std::path::PathBuf;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, Hash)]
 struct Point(pub usize, pub usize);
 impl Point {
     fn try_add(&self, y: i32, x: i32) -> Option<Point> {
@@ -152,27 +154,69 @@ impl Day12part1 {
         }
     }
 
-    fn path_find(&self, start: &Point, end: &Point) {
-        let mut paths: VecDeque<(&Point, Vec<&Point>)> = VecDeque::new();
-        paths.push_back((start, vec![]));
-        while !paths.is_empty() {
-            let (node, path) = paths.pop_front().unwrap();
+    fn path_find<F: Fn(&Point) -> bool>(&self, start: &Point, should_stop: F) -> Vec<Vec<Point>> {
+        let mut path_queue: Vec<(Point, Vec<Point>, FxHashSet<Point>)> = Vec::new();
+        let mut paths = Vec::<Vec<Point>>::new();
+        path_queue.push((*start, vec![], FxHashSet::default()));
+
+        while !path_queue.is_empty() {
+            let (node, mut path, mut seen) = path_queue.pop().unwrap();
+
             let valid_moves = self
                 .heightmap
                 .valid_moves(&node)
                 .into_iter()
-                .filter(|(cur, _)| cur != node)
+                .filter(|(cur, _)| *cur != node)
                 .collect_to_vec();
-            println!("{:?}", valid_moves);
+
+            if valid_moves.is_empty() {
+                continue;
+            }
+
+            for (point, _) in valid_moves {
+                path.push(point);
+
+                if should_stop(&point) {
+                    println!(
+                        "path terminated: {:?}",
+                        path.iter()
+                            .join_to_string("->", |x| format!("({},{})", x.0, x.1))
+                    );
+                    paths.push(path.iter().map(|x| *x).collect_to_vec());
+                    continue;
+                }
+
+                if seen.contains(&point) {
+                    continue;
+                }
+
+                seen.insert(point);
+                // path.last().debug();
+                path_queue.push((
+                    point,
+                    {
+                        let mut v = Vec::new();
+                        path.clone_into(&mut v);
+                        v.push(point);
+                        v
+                    },
+                    seen.clone(),
+                ));
+            }
         }
+        paths
     }
 
     pub fn solve(&mut self) {
         self.heightmap = self.parse();
-
         let (start, end) = (self._find_char('S'), self._find_char('E'));
-        println!("{:?} {:?}", start, self.heightmap.valid_moves(&Point(0, 0)));
-        self.path_find(&start.point, &end.point);
+        let mut paths = self
+            .path_find(&start.point, |p| p.1 == self.heightmap[0].len() / 2)
+            .iter()
+            .map(|x| x.clone())
+            .collect_to_vec();
+        paths.sort_by_key(|x| x.len());
+        println!("{:?}", paths.first().unwrap().len());
     }
 }
 /*
@@ -188,4 +232,9 @@ To avoid needing to get out your climbing gear,
     you could step to elevation n, but not to elevation o.
 
 (This also means that the elevation of the destination square can be much lower than the elevation of your current square.)
+ */
+/*
+reference implementations
+https://www.reddit.com/r/adventofcode/comments/zjnruc/comment/j2du9yj/
+https://www.reddit.com/r/adventofcode/comments/zjnruc/comment/j2tx1um/
  */
