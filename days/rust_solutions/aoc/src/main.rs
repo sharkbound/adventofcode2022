@@ -1,14 +1,25 @@
-use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
-use std::path::PathBuf;
 use aoc::get_aoc_input;
 use rustutils::arg_parser::args::{ArgCollection, ArgDataType};
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() {
     let mut parser = ArgCollection::new();
-    parser.add_required("day", None, "day of the input to download", ArgDataType::I32);
-    parser.add_optional("out", None, "file to write the input text to", ArgDataType::String, "");
+    parser.add_required(
+        "day",
+        None,
+        "day of the input to download",
+        ArgDataType::I32,
+    );
+    parser.add_optional(
+        "out",
+        None,
+        "file to write the input text to",
+        ArgDataType::String,
+        "",
+    );
     parser.bind_env_args();
     parser.check();
 
@@ -16,9 +27,12 @@ async fn main() {
     let input = get_aoc_input(day).await;
 
     let input_text = match input {
-        Ok(value) => { value }
+        Ok(value) => value,
         Err(err) => {
-            println!("Cannot download AOC input for day: {}\nErr: \n\t{}", day, err);
+            println!(
+                "Cannot download AOC input for day: {}\nErr: \n\t{}",
+                day, err
+            );
             std::process::exit(1);
         }
     };
@@ -27,8 +41,8 @@ async fn main() {
         Ok(ref path) => match path.as_str() {
             "" => input_file_path(day),
             path => PathBuf::from(path),
-        }
-        Err(_) => input_file_path(day)
+        },
+        Err(_) => input_file_path(day),
     };
 
     println!("Got AOC day {} input!", day);
