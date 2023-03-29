@@ -47,11 +47,17 @@ macro_rules! str_split {
 macro_rules! string_split {
     // string_split!(items);
     ($string:expr) => {
-        $string.split_whitespace().map(|s|s.to_string()).collect::<Vec<String>>()
+        $string
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>()
     };
 
     // string_split!(items, " ");
     ($string:expr, $sep:expr) => {
-        $string.split($sep).map(|s|s.to_string()).collect::<Vec<String>>()
+        $string
+            .split($sep)
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>()
     };
 }

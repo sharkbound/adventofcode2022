@@ -13,13 +13,23 @@ fn main() {
 }
 
 fn get_cycle_repeat(nums: &[u32]) -> u32 {
-    let (mut primes, mut non_primes): (Vec<u32>, Vec<u32>) = nums.iter()/*.map(|x| *x)*/.partition(|x| is_prime_u32(**x));
+    let (mut primes, mut non_primes): (Vec<u32>, Vec<u32>) = nums
+        .iter() /*.map(|x| *x)*/
+        .partition(|x| is_prime_u32(**x));
     while !non_primes.is_empty() {
         let n = non_primes.pop().unwrap();
         match split_number(n) {
             Some((x, y)) => {
-                if is_prime_u32(x) { primes.push(x); } else { non_primes.push(x); }
-                if is_prime_u32(y) { primes.push(y); } else { non_primes.push(y); }
+                if is_prime_u32(x) {
+                    primes.push(x);
+                } else {
+                    non_primes.push(x);
+                }
+                if is_prime_u32(y) {
+                    primes.push(y);
+                } else {
+                    non_primes.push(y);
+                }
             }
             None => {
                 primes.push(n);
@@ -43,4 +53,3 @@ fn split_number(n: u32) -> Option<(u32, u32)> {
     }
     None
 }
-

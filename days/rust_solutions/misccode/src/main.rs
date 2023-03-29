@@ -1,18 +1,35 @@
-use std::collections::HashMap;
-use rand::Rng;
-
-#[derive(Eq, PartialEq, Hash, Debug)]
-enum E {
-    A,
-    B,
-    C,
-}
+use std::marker::PhantomData;
 
 fn main() {
-    // let value = rand::thread_rng().gen_ratio(10, 20);
-    // dbg!(value);
-    let mut mapping: HashMap<E, u32> = HashMap::new();
-    mapping.insert(E::A, 1);
-    mapping.insert(E::B, 2);
-    dbg!(mapping);
+    let t = Type::new(); // returns Type<Closed>
+    let t = t.open(); // returns Type<Open>, .open() can only be called on Type<Closed>
+    let t = t.close(); // returns Type<Closed>, .close() can only be called on Type<Open>
+}
+
+struct Opened;
+struct Closed;
+struct Type<State = Closed> {
+    state: PhantomData<State>,
+}
+
+impl Type {
+    pub fn new() -> Self {
+        Type { state: PhantomData }
+    }
+}
+
+impl Type<Opened> {
+    pub fn close(self) -> Type<Closed> {
+        Type {
+            state: PhantomData,
+        }
+    }
+}
+
+impl Type<Closed> {
+    pub fn open(self) -> Type<Opened> {
+        Type {
+            state: PhantomData,
+        }
+    }
 }

@@ -4,3 +4,4 @@
 # compiled rust
 target/
 /aoc.exe
+/misccode/src/bin/example.rs

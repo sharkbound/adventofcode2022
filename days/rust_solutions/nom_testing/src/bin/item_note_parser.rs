@@ -14,7 +14,6 @@ example:
 https://github.com/ChristopherBiscardi/advent-of-code/blob/main/2022/rust/day-05/src/lib.rs
 */
 
-
 fn main() {
     let to_parse = r#"Items
     milk

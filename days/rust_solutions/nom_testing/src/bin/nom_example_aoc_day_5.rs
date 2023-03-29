@@ -1,9 +1,7 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{
-        self, alpha1, digit1, multispace1, newline, space1,
-    },
+    character::complete::{self, alpha1, digit1, multispace1, newline, space1},
     multi::{many1, separated_list1},
     sequence::{delimited, preceded},
     *,
@@ -12,11 +10,7 @@ use nom::{
 fn parse_crate(input: &str) -> IResult<&str, Option<&str>> {
     let (input, c) = alt((
         tag("   "),
-        delimited(
-            complete::char('['),
-            alpha1,
-            complete::char(']'),
-        ),
+        delimited(complete::char('['), alpha1, complete::char(']')),
     ))(input)?;
 
     let result = match c {
@@ -27,8 +21,7 @@ fn parse_crate(input: &str) -> IResult<&str, Option<&str>> {
 }
 
 fn line(input: &str) -> IResult<&str, Vec<Option<&str>>> {
-    let (input, result) =
-        separated_list1(tag(" "), parse_crate)(input)?;
+    let (input, result) = separated_list1(tag(" "), parse_crate)(input)?;
 
     Ok((input, result))
 }
@@ -57,20 +50,14 @@ fn move_crate(input: &str) -> IResult<&str, Move> {
     ))
 }
 
-fn crates(
-    input: &str,
-) -> IResult<&str, (Vec<Vec<&str>>, Vec<Move>)> {
-    let (input, crates_horizontal) =
-        separated_list1(newline, line)(input)?;
+fn crates(input: &str) -> IResult<&str, (Vec<Vec<&str>>, Vec<Move>)> {
+    let (input, crates_horizontal) = separated_list1(newline, line)(input)?;
     let (input, _) = newline(input)?;
-    let (input, _numbers) =
-        many1(preceded(space1, digit1))(input)?;
+    let (input, _numbers) = many1(preceded(space1, digit1))(input)?;
     let (input, _) = multispace1(input)?;
-    let (input, moves) =
-        separated_list1(newline, move_crate)(input)?;
+    let (input, moves) = separated_list1(newline, move_crate)(input)?;
 
-    let mut crates_vertical: Vec<Vec<Option<&str>>> =
-        vec![];
+    let mut crates_vertical: Vec<Vec<Option<&str>>> = vec![];
     for _ in 0..=crates_horizontal.len() {
         crates_vertical.push(vec![]);
     }
@@ -88,8 +75,7 @@ fn crates(
 }
 
 pub fn process_part1(input: &str) -> String {
-    let (_, (mut crate_stacks, moves)) =
-        crates(input).unwrap();
+    let (_, (mut crate_stacks, moves)) = crates(input).unwrap();
     for Move { number, from, to } in moves.iter() {
         let len = crate_stacks[*from as usize].len();
         let drained = crate_stacks[*from as usize]
@@ -113,8 +99,7 @@ pub fn process_part1(input: &str) -> String {
 }
 
 pub fn process_part2(input: &str) -> String {
-    let (_, (mut crate_stacks, moves)) =
-        crates(input).unwrap();
+    let (_, (mut crate_stacks, moves)) = crates(input).unwrap();
     for Move { number, from, to } in moves.iter() {
         let len = crate_stacks[*from as usize].len();
         let drained = crate_stacks[*from as usize]

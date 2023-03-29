@@ -4,7 +4,9 @@ pub trait DebugLog {
 }
 
 impl<T> DebugLog for T
-    where T: std::fmt::Debug {
+where
+    T: std::fmt::Debug,
+{
     fn debug_expanded(&self) -> &Self {
         println!("{:#?}", self);
         self
@@ -21,7 +23,9 @@ pub trait DisplayLog {
 }
 
 impl<T> DisplayLog for T
-    where T: std::fmt::Display {
+where
+    T: std::fmt::Display,
+{
     fn display(&self) -> &Self {
         println!("{}", self);
         self

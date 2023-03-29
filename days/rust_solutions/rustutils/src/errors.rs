@@ -26,7 +26,10 @@ impl Debug for GeneralError {
 
 impl Display for GeneralError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{{ GeneralError: name={:?} message={:?} }}", self.name, self.message))
+        f.write_str(&format!(
+            "{{ GeneralError: name={:?} message={:?} }}",
+            self.name, self.message
+        ))
     }
 }
 

@@ -23,7 +23,7 @@ where
             buf.push_str(sep);
             buf.push_str(&format_item(item));
         }
-        
+
         buf
     }
 }

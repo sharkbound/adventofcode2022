@@ -1,10 +1,11 @@
 use ndarray::Array2;
 use rustutils::io::FileBuilder;
 use rustutils::logging::DebugLog;
+use rustutils::map_to::MapToExt;
 use std::io::BufRead;
 use std::path::PathBuf;
 
-#[derive(Debug, Copy, Clone, Eq, Hash)]
+#[derive(Debug, Copy, Clone)]
 struct Point {
     x: usize,
     y: usize,
@@ -15,48 +16,66 @@ impl Point {
         Point { x, y }
     }
 
-    fn as_u2(&self) -> [usize; 2] {
-        [self.x, self.y]
+    fn at_edge(&self, bounds: [usize; 2]) -> bool {
+        self.x == 0 || self.x == bounds[1] || self.y == 0 || self.y == bounds[0]
     }
 
-    fn add(&self, y: i32, x: i32) -> Option<Point> {
-        return if (self.x as i32 + y) < 0 {
-            None
-        } else if (self.y as i32 + x) < 0 {
-            None
-        } else {
-            Some(Point::new(
-                (self.x as i32 + y) as usize,
-                (self.y as i32 + x) as usize,
-            ))
-        };
+    fn as_usize_array_yx(&self) -> [usize; 2] {
+        [self.y, self.x]
+    }
+
+    fn as_i32_array_yx(&self) -> [i32; 2] {
+        [self.y as i32, self.x as i32]
     }
 }
 
-impl PartialEq<Self> for Point {
-    fn eq(&self, other: &Self) -> bool {
-        self.x == other.x && self.y == other.y
-    }
+#[derive(Debug, Copy, Clone)]
+struct Offset {
+    x: i32,
+    y: i32,
 }
 
-static ALLOWED_OFFSETS: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+static ALLOWED_OFFSETS: [Offset; 4] = [
+    Offset { x: -1, y: 0 },
+    Offset { x: 1, y: 0 },
+    Offset { x: 0, y: -1 },
+    Offset { x: 0, y: 1 },
+];
+
+static START_INT: i32 = -1;
+static END_INT: i32 = -2;
 
 #[derive(Debug)]
-struct CharPos {
+struct PointData {
     pub point: Point,
-    pub chr: char,
+    pub height: i32,
+}
+
+fn char_heightmap_to_i32_height(heightmap: &Array2<char>) -> Array2<i32> {
+    let i32_heightmap = heightmap.map(|x| match *x {
+        'S' => START_INT,
+        'E' => END_INT,
+        val => val as i32 - 'a' as i32,
+    });
+    i32_heightmap
 }
 
 pub struct Day12part1 {
     file: PathBuf,
     heightmap: Array2<char>,
+    i32_heightmap: Array2<i32>,
 }
 
+enum BoundsCheck {
+    Enabled,
+    Disabled,
+}
 impl Day12part1 {
     pub fn new(input_path: PathBuf) -> Self {
         Self {
             file: input_path,
             heightmap: Array2::from_elem([0, 0], ' '),
+            i32_heightmap: Array2::from_elem([0, 0], 0),
         }
     }
 
@@ -78,12 +97,12 @@ impl Day12part1 {
         arr
     }
 
-    fn _find_char(&self, find_char: char) -> Option<CharPos> {
+    fn _find_char(&self, find_char: char) -> Option<PointData> {
         self.heightmap.indexed_iter().find_map(|((y, x), c)| {
             if *c == find_char {
-                Some(CharPos {
+                Some(PointData {
                     point: Point::new(x, y),
-                    chr: *c,
+                    height: self.i32_heightmap[[y, x]],
                 })
             } else {
                 None
@@ -97,9 +116,44 @@ impl Day12part1 {
         paths
     }
 
+    fn create_point(&self, x: i32, y: i32) -> Option<Point> {
+        let point = match (usize::try_from(x), usize::try_from(y)) {
+            (Ok(x), Ok(y)) => Point::new(x, y),
+            _ => return None,
+        };
+
+        let (bounds_y, bounds_x) = self.i32_heightmap.shape().map_to(|x| (x[0], x[1]));
+        if point.x >= bounds_x || point.y >= bounds_y {
+            return None;
+        }
+
+        Some(point)
+    }
+
+    fn neighbors(&self, point: Point) -> Vec<PointData> {
+        let current_height = self.i32_heightmap[point.as_usize_array_yx()];
+        let mut neighbors = Vec::new();
+        for offset in ALLOWED_OFFSETS.iter() {
+            let [x, y] = point.map_to(|Point { x, y }| [x as i32 + offset.x, y as i32 + offset.y]);
+
+            match self.create_point(x, y) {
+                Some(point) => {
+                    let height = self.i32_heightmap[point.as_usize_array_yx()];
+                    if (height - current_height).abs() > 1 {
+                        continue;
+                    }
+                    neighbors.push(PointData { height, point });
+                }
+                None => continue,
+            }
+        }
+        neighbors
+    }
+
     pub fn solve(&mut self) {
         self.heightmap = self.parse();
-        self.heightmap.debug();
+        self.i32_heightmap = char_heightmap_to_i32_height(&self.heightmap);
+        self.i32_heightmap.debug();
         let (start, end) = (self._find_char('S').unwrap(), self._find_char('E').unwrap());
         println!("start: {:?}, end: {:?}", start, end);
     }
