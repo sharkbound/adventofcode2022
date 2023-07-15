@@ -1,13 +1,11 @@
-use rustutils::logging::DebugLog;
-use std::path::{Path, PathBuf};
+use rustutils::path_from_root;
 
+#[allow(unused_variables)]
 fn main() {
-    let sample = ["day_12", "src", "sample_0.txt"]
-        .iter()
-        .collect::<PathBuf>();
-    let input = ["../../../", "inputs", "day_12.txt"]
-        .iter()
-        .collect::<PathBuf>();
-    Path::new(".").canonicalize().debug();
+    let root = std::env::current_dir().unwrap().canonicalize().unwrap();
+
+    let input = path_from_root!(root, "inputs", "day_12.txt");
+    let sample = path_from_root!(root, "day_12", "src", "sample_0.txt");
+
     day_12::day12part1::Day12part1::new(sample).solve();
 }

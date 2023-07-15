@@ -114,7 +114,10 @@ impl Day12part1 {
             })
     }
 
-    fn path_find(&self, start: &Point, /*should_stop: impl Fn(&Point) -> bool*/) -> Vec<Vec<Point>> {
+    fn path_find(
+        &self,
+        start: &Point, /*should_stop: impl Fn(&Point) -> bool*/
+    ) -> Vec<Vec<Point>> {
         let mut path = vec![self.get_point_data(*start)];
         let mut paths = Vec::new();
         loop {
@@ -122,9 +125,7 @@ impl Day12part1 {
             let neighbors = self.neighbors(current_data.point);
             match neighbors.iter().find(|data| data.height == END_HEIGHT) {
                 None => {}
-                Some(data) => {
-                    path.push(*data)
-                }
+                Some(data) => path.push(*data),
             }
             todo!();
         }

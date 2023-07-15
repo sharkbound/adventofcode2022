@@ -17,7 +17,6 @@ After each monkey inspects an item but before it tests your worry level,
 The monkeys take turns inspecting and throwing items.
 On a single monkey's turn, it inspects and throws all of the items it is holding one at a time and in the order listed.
 */
-
 // #[derive(Debug)]
 struct Monkey {
     id: u64,
