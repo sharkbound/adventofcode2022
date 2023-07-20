@@ -6,16 +6,15 @@ macro_rules! path {
        path
    }};
 
-    ($path:expr) => {
+    ($path:expr) => {{
         let mut path = std::path::PathBuf::new();
         path.push($path);
         path
-    };
+    }};
 }
 
 #[macro_export]
 macro_rules! path_from_root {
-
    ($root:expr, $($x:expr),+ $(,)?) => {{
        let mut path = $root.clone();
        $(path.push($x);)+
